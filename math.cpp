@@ -1,3 +1,5 @@
+#if _WIN32 && __x86_64__
+
 __declspec(naked) int rounding_common()
 {
     __asm
@@ -90,3 +92,5 @@ __declspec(naked) int __cdecl trunc(double x)
         jmp rounding_common
     }
 }
+
+#endif

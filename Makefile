@@ -2,6 +2,7 @@
 CXX = g++
 CXXFLAGS = -Wall -g
 TARGET = tsid
+LDFLAGS += -lglfw -lGL -lGLU
 SRCS := $(shell find -name '*.cpp')
 OBJS = $(SRCS:.cpp=.o)
 
@@ -10,7 +11,7 @@ all: $(TARGET)
 
 # Rule to link object files into the executable
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 # Rule to compile C++ source files into object files
 %.o: %.cpp

@@ -1,7 +1,20 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <windows.h>
+#ifndef _WIN32
+#include <stdint.h>
+typedef union _LARGE_INTEGER {
+  struct {
+    uint32_t LowPart;
+    int32_t  HighPart;
+  } DUMMYSTRUCTNAME;
+  struct {
+    uint32_t LowPart;
+    int32_t  HighPart;
+  } u;
+  int64_t QuadPart;
+} LARGE_INTEGER;
+#endif
 
 class Timer	// high resolution timer
 	{

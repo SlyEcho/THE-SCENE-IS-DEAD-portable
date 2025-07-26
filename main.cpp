@@ -1,25 +1,34 @@
-#define WIN32_LEAN_AND_MEAN
+#include <cstddef>
+#include <cstring>
+#include <cstdlib>
 #define DEBUG 0					// debug flag //#if defined(_DEBUG)
-#define SHADER 1				// shader flag
-#define MUSIC DEBUG?0:1 // music flag
+#define SHADER 0				// shader flag
+//#define MUSIC DEBUG?0:1 // music flag
+#define MUSIC 1
 #define PI 3.1415926535f// pi
 #define PID PI/180.0f		// pi ratio
 #define CR 1.0f/256.0f	// color ratio
 #define TIME 1.92f
 
-#include <windows.h>
+#include <GLFW/glfw3.h>
+#include <GL/glu.h>
+
 #include <stdio.h>
 #include <math.h>
-#include <gl\gl.h>
-#include <gl\glu.h>
+#if SHADER
 #include "glsl.h"
-#include "resource.h"
+#endif
 #include "timer.h"
 #if MUSIC
 #include "v2mplayer.h"
 #include "libv2.h"
 #include "music.h"
 #endif
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#include "resource/map.h" // texture
 
 bool done=false;
 
@@ -52,10 +61,7 @@ int screen_start[]= {0,16,18,19, 1,7,12,2,3,8,10,13,14,4,15,6,20, 9,5,17,21};	//
 int screen_length[]={0, 1, 1, 1,24,4, 4,8,8,8, 4, 4, 2,8, 8,4, 4,16,7, 2, 8};	// screen length
 float screen_timer[screen_max];	// screen timer
 
-HDC				hDC=NULL;			// GDI device context
-HGLRC			hRC=NULL;			// rendering context
-HWND			hWnd=NULL;		// window handle
-HINSTANCE	hInstance;		// instance application
+GLFWwindow* window = NULL;
 
 int keys[256];					// keyboard array
 int active=true;				// window active flag
@@ -111,12 +117,12 @@ float liner_vtx[]={1.0f,-1.0f,1.0f,1.0f,-1.0f,1.0f,-1.0f,-1.0f}; //,-1.0f,-1.0f,
 int greetings_i;				// greetings value
 int greetings_n=16;			// greetings number
 /* text variable				*/
-char *name="Razor 1911 - The Scene Is Dead";
+const char *name="Razor 1911 - The Scene Is Dead";
 char const *txt_dos[]={
 "\rCopyright \x05e\x031\x039\x038\x037 Commodore-Amiga, Inc.\rAll rights reserved.\rRelease 1.3\r@",
-"\r\r                      .::::: .::::::::::.  .:::::  .:::::\r   .  . .. ............:::::.:::::..:::::...:::::...:::::........... .. .  .\r       _ __ ___________ __________ __________ __________ __________\r           \\\\_______  ¼\\_______  ¼\\_______  ¼\\__    _  ¼\\_______  ¼\\_ __ _\r             /    _  ___/    _     /    ______/     /    /    _  ___//\r            /     /   \\/     /    /     /    /     /    /     /   \\\r           /     /    /     /    /     /    /     /    /     /    /\r          /_____/    /_____/    /_____     /_____     /_____/    /\r              /_____/    /_____/    /_____/    /_____/    /_____/kRm\r   .  . .. ......................................................... .. .  .\r                       ::::: :::::  :::::   :::::   :::::\r                       ::::: `:::::::::::   :::::   :::::\r                       :::::        :::::   :::::   :::::\r                       ::::: :::::::::::'   :::::   :::::\r\r                  gives you \"THE SCENE IS DEAD\" A Non-AGA demo!\r                         Release Date 8th of April 2012\r\r       If you only have 1.0 MB memory then turn off all external drives.\r           If you have OS 2.x and only 1.0 MB the demo may not run!\r@",
+"\r\r                      .::::: .::::::::::.  .:::::  .:::::\r   .  . .. ............:::::.:::::..:::::...:::::...:::::........... .. .  .\r       _ __ ___________ __________ __________ __________ __________\r           \\\\_______  ï¿½\\_______  ï¿½\\_______  ï¿½\\__    _  ï¿½\\_______  ï¿½\\_ __ _\r             /    _  ___/    _     /    ______/     /    /    _  ___//\r            /     /   \\/     /    /     /    /     /    /     /   \\\r           /     /    /     /    /     /    /     /    /     /    /\r          /_____/    /_____/    /_____     /_____     /_____/    /\r              /_____/    /_____/    /_____/    /_____/    /_____/kRm\r   .  . .. ......................................................... .. .  .\r                       ::::: :::::  :::::   :::::   :::::\r                       ::::: `:::::::::::   :::::   :::::\r                       :::::        :::::   :::::   :::::\r                       ::::: :::::::::::'   :::::   :::::\r\r                  gives you \"THE SCENE IS DEAD\" A Non-AGA demo!\r                         Release Date 8th of April 2012\r\r       If you only have 1.0 MB memory then turn off all external drives.\r           If you have OS 2.x and only 1.0 MB the demo may not run!\r@",
 "\r\r  /\\______  /\\______  ____/\\______     __\r  \\____   \\/  \\__   \\/  _ \\____   \\ __/  \\____\r   / _/  _/    \\/   /   /  / _/  _// / / / / /\r  /  \\   \\  /\\ /   /\\  /  /  \\   \\/ /\\  / / /\r  \\__/\\   \\/RTX______\\___/\\__/\\   \\/ / /_/_/\r  =====\\___)===\\__)============\\___)=\\/=======\r  Razor 1911 - Sharpening the blade since 1985\r\r@"};
-//"\r\r                                      _____\r                     _ _ ___________ _\\_  /_ _______ _____ _\r                    .\\\\\\Y   _X___  \x07fY   _/ \x07fY   __ \x07fY   _///.\r              _ ___     |   |  \\|   |   |/  |   |/  |   |     ___ _\r              \\Y  /_  _ |   |   l   |   l   |   l   |   | _  _\\  Y/\r               l_/// (//l___l_______l_______l_______l___|\\\\) \\\\\\_|\r                \x07f       .  \x07f      _\x07f       \x07f       \x07f _,\x07f!       \x07f\r                        !      ___\\_        _____    \\__\r                       _____   \\__  \\_      \\__  \\_ ___/_\r                       \\__  \\_  \x07f/   /_  sK  \x07f/   /\\\\__  \\_\r                        \x07f/   /\\ /  _   \\     /   /  \\\x07f/   /\\\r                        /   /  /   /   /\\   /   /   //   /  \\\r                       /   /  /   /   /  \\ /   /   //   /   /\r                      /   /   \\__    /   //   /   //   /   /\r                     /   /   /  /   /   //   /   //   /   /\r                    /_  /__ /  /_  /__ //_  /__ //_  /__ /\r                     /____/\\   \\/____/\\ \\/____/\\ \\/____/\\\r                     \\    \\ \\   \\    \\ \\ \\    \\ \\ \\    \\ \\\r                      \\____\\/    \\____\\/  \\____\\/  \\____\\/\r                          \x07f          \x07f        \x07f        \x07f\r                        :                               ·\r              _ __      |   r  a  z  o  r  1  9  1  1   |      __ _\r              \\Y  \\ _   |                               |   _ /  Y/\r               |___\\\\\\. l_______________________________| .///___|\r                  \x07f                                    \x07f        \x07f\r@"};
+//"\r\r                                      _____\r                     _ _ ___________ _\\_  /_ _______ _____ _\r                    .\\\\\\Y   _X___  \x07fY   _/ \x07fY   __ \x07fY   _///.\r              _ ___     |   |  \\|   |   |/  |   |/  |   |     ___ _\r              \\Y  /_  _ |   |   l   |   l   |   l   |   | _  _\\  Y/\r               l_/// (//l___l_______l_______l_______l___|\\\\) \\\\\\_|\r                \x07f       .  \x07f      _\x07f       \x07f       \x07f _,\x07f!       \x07f\r                        !      ___\\_        _____    \\__\r                       _____   \\__  \\_      \\__  \\_ ___/_\r                       \\__  \\_  \x07f/   /_  sK  \x07f/   /\\\\__  \\_\r                        \x07f/   /\\ /  _   \\     /   /  \\\x07f/   /\\\r                        /   /  /   /   /\\   /   /   //   /  \\\r                       /   /  /   /   /  \\ /   /   //   /   /\r                      /   /   \\__    /   //   /   //   /   /\r                     /   /   /  /   /   //   /   //   /   /\r                    /_  /__ /  /_  /__ //_  /__ //_  /__ /\r                     /____/\\   \\/____/\\ \\/____/\\ \\/____/\\\r                     \\    \\ \\   \\    \\ \\ \\    \\ \\ \\    \\ \\\r                      \\____\\/    \\____\\/  \\____\\/  \\____\\/\r                          \x07f          \x07f        \x07f        \x07f\r                        :                               ï¿½\r              _ __      |   r  a  z  o  r  1  9  1  1   |      __ _\r              \\Y  \\ _   |                               |   _ /  Y/\r               |___\\\\\\. l_______________________________| .///___|\r                  \x07f                                    \x07f        \x07f\r@"};
 char const *txt_skull={"\r we are back@"};
 char const *txt_title={"\r   the\r  scene\r is dead@"};
 char const *txt_razor={"\r     released\r        by\r\r**             **\r *             * \r\r        at\r     revision\r       2012@"};
@@ -380,48 +386,24 @@ FBO* fbo_ping;
 FBO* fbo_pong;
 #endif
 
-LRESULT	CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);	// wndProc declaration
-
-static PIXELFORMATDESCRIPTOR pfd=
+int load_tex(unsigned char *file,int size,GLint clamp,GLint mipmap)
 	{
-	sizeof(PIXELFORMATDESCRIPTOR),
-	1,											// version number
-	PFD_DRAW_TO_WINDOW|			// format must support window
-	PFD_SUPPORT_OPENGL|			// format must support openGL
-	PFD_DOUBLEBUFFER,				// must support double buffering
-	PFD_TYPE_RGBA,					// request an RGBA format
-	window_color,						// select our color depth
-	0,0,0,0,0,0,						// color bits ignored
-	0,											// no alpha buffer
-	0,											// shift bit ignored
-	0,											// no accumulation buffer
-	0,0,0,0,								// accumulation bits ignored
-	16,											// z-buffer (depth buffer)
-	0,											// no stencil buffer
-	0,											// no auxiliary buffer
-	PFD_MAIN_PLANE,					// main drawing layer
-	0,											// reserved
-	0,0,0										// layer masks ignored
-	};
-
-int load_tex(WORD file,GLint clamp,GLint mipmap)
-	{
-	HBITMAP hBMP;	// bitmap handle
-	BITMAP BMP;		// bitmap structure
-	hBMP=(HBITMAP)LoadImage(GetModuleHandle(NULL),MAKEINTRESOURCE(file),IMAGE_BITMAP,0,0,LR_CREATEDIBSECTION);
-	if(!hBMP) return 0;
-	GetObject(hBMP,sizeof(BMP),&BMP);
-	glPixelStorei(GL_UNPACK_ALIGNMENT,4);
+	int x,y,cpf;
+	stbi_set_flip_vertically_on_load(1);
+	unsigned char *tex = stbi_load_from_memory(file,size,&x,&y,&cpf,0);
+	assert(tex);
+	stbi_set_flip_vertically_on_load(0);
 	GLuint TexID;
 	glGenTextures(1,&TexID);
  	glBindTexture(GL_TEXTURE_2D,TexID);
+	glPixelStorei(GL_UNPACK_ALIGNMENT,cpf);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,clamp);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,clamp);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,mipmap);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,mipmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP,GL_TRUE);
-	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,BMP.bmWidth,BMP.bmHeight,0,GL_BGR,GL_UNSIGNED_BYTE,BMP.bmBits);
-	DeleteObject(hBMP);
+	printf("w: %d - h: %d - cpf: %d\n", x,y,cpf);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,x,y,0,GL_BGR,GL_UNSIGNED_BYTE,tex);
 	return TexID;
 	}
 
@@ -457,23 +439,27 @@ void draw_shader_simple(FBO* fbo_output,int n)
 	}
 #endif
 
+/*
 int rand()
 	{
 	static int lastrand=3489715357;
-	__asm
-		{
-		mov		eax,[lastrand]
-		mov		edx,eax
-		rcr		edx,11
-		adc		eax,17
-		xor		ax,dx
-		imul	eax,edx
-		xor		eax,edx
-		mov		[lastrand],eax
-		and		eax,0xffff
-		}
+
+	__asm__
+		(
+		"mov		eax,[lastrand]\n\t"
+		"mov		edx,eax\n\t"
+		"rcr		edx,11\n\t"
+		"adc		eax,17\n\t"
+		"xor		ax,dx\n\t"
+		"imul	eax,edx\n\t"
+		"xor		eax,edx\n\t"
+		"mov		[lastrand],eax\n\t"
+		"and		eax,0xffff\n\t"
+		);
+
 	return (int)lastrand;
 	}
+	*/
 
 void calc_txt()
 	{
@@ -906,7 +892,7 @@ int InitGL(void)
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	// load texture
- 	tex_map=load_tex(IDB_MAP,GL_CLAMP,GL_NEAREST);//_MIPMAP_NEAREST);
+ 	tex_map=load_tex(rzrmap, rzrmapLength,GL_CLAMP,GL_NEAREST);//_MIPMAP_NEAREST);
 	// initialize some variable
 	timer=new Timer();
 	for(i=0;i<screen_max;i++) screen_timer[i]=((i>0)?screen_timer[i-1]:0)+screen_length[i]*TIME;
@@ -1054,7 +1040,9 @@ int InitGL(void)
 			{
 			char glsl_error[512];
 			sprintf(glsl_error,"A bloody error occurred during GLSL init!\n\n%s",_pException);
+#if _WIN32
 			MessageBox(NULL,glsl_error,"GLSL ERROR!",MB_OK|MB_ICONERROR);
+#endif
 			return false;
 			}
 		}
@@ -1235,7 +1223,7 @@ int DrawGLScene(void) // draw scene
 	if(polygon) glEnable(GL_TEXTURE_2D);
 	/* .-------------------. */
 	/* | DRAW SOME 2D HERE | */
-	/* °-------------------° */
+	/* ï¿½-------------------ï¿½ */
 	init_viewport(1);
 	// draw logo
 	glBindTexture(GL_TEXTURE_2D,tex_map);
@@ -1287,7 +1275,7 @@ int DrawGLScene(void) // draw scene
 		}
 	/* .-------------------. */
 	/* | DRAW SOME 3D HERE | */
-	/* °-------------------° */
+	/* ï¿½-------------------ï¿½ */
 	init_viewport(0);
 	/*-PATACODE----------------------------------------------------------------*/
 	#if SHADER
@@ -1595,7 +1583,7 @@ int DrawGLScene(void) // draw scene
 	/*-/PATACODE---------------------------------------------------------------*/
 	/* .-------------------. */
 	/* | DRAW SOME 2D HERE | */
-	/* °-------------------° */
+	/* ï¿½-------------------ï¿½ */
 	init_viewport(1);
 	glBindTexture(GL_TEXTURE_2D,tex_map);
 	glEnable(GL_BLEND);
@@ -1779,7 +1767,7 @@ int DrawGLScene(void) // draw scene
 	glEnable(GL_BLEND);
 	/* .-------------------. */
 	/* | DRAW SOME 3D HERE | */
-	/* °-------------------° */
+	/* ï¿½-------------------ï¿½ */
 	//init_viewport(0);
 	/*-PATACODE----------------------------------------------------------------*/
 	#if SHADER
@@ -1913,36 +1901,116 @@ int DrawGLScene(void) // draw scene
 	return true;
 	}
 
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
+	// no need to do anything on fullscreen
+	if (fullscreen) return;
+
+	screen_w = width;
+	screen_h = height;
+}
+
+void window_close_callback(GLFWwindow* window)
+{
+	done=true;
+}
+
+void error_callback(int error, const char* description)
+{
+    fprintf(stderr, "Error: %s\n", description);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (action == GLFW_PRESS) {
+	switch (key) {
+		case GLFW_KEY_ESCAPE:
+			done=true;
+			break;
+		case GLFW_KEY_F1:
+			debug_flag=!debug_flag;
+			break;
+			#if DEBUG
+		case GLFW_KEY_F2: {
+				polygon=!polygon;
+				polygon_fillmode=(polygon)?GL_FILL:GL_LINE;
+				glPolygonMode(GL_FRONT,polygon_fillmode);
+				break;
+		}
+		case GLFW_KEY_F3: {
+				shader_flag=!shader_flag;
+				break;
+		}
+		case GLFW_KEY_F4: {
+				shader_postfx_flag=!shader_postfx_flag;
+				break;
+		}
+		case GLFW_KEY_TAB: {
+				shader_effect_flag=!shader_effect_flag;
+				break;
+		}
+		case GLFW_KEY_ENTER: {
+				timer_fps_total=0;
+				timer_fps_min=32768;
+				timer_fps_max=0;
+				frame_counter=0;
+				bar(1.0f);
+				greetings();
+				break;
+				}
+		case GLFW_KEY_F5:{
+				screen_i--;
+				if(screen_i<0) screen_i=screen_max-1;
+				screen(screen_start[screen_i]);
+				break;
+				}
+		case GLFW_KEY_F6:
+				{
+				screen_i++;
+				if(screen_i>screen_max-1) screen_i=0;
+				screen(screen_start[screen_i]);
+				break;
+				}
+		case GLFW_KEY_F7:
+				{
+				beat();
+				sync1();
+				sync2();
+				break;
+				}
+		case GLFW_KEY_F12:
+				{
+				postfx_scanline=!postfx_scanline;
+				break;
+				}
+		case GLFW_KEY_BACKSPACE:
+				{
+				pause=!pause;
+				break;
+				}
+			#endif
+	
+		default:
+			break;
+	}
+	}
+}
+
 void KillGLWindow(void)							// kill window
 	{
-	if(fullscreen)
-		{
-		window_w=base_w;
-		window_h=base_h;
-		ChangeDisplaySettings(NULL,0);	// switch back to desktop
-		ShowCursor(true);								// show mouse pointer
-		}
-	if(hRC)
-		{
-		if(!wglMakeCurrent(NULL,NULL)) MessageBox(NULL,"Release Of DC And RC Failed.","SHUTDOWN ERROR",MB_OK|MB_ICONINFORMATION);
-		if(!wglDeleteContext(hRC)) MessageBox(NULL,"Release Rendering Context Failed.","SHUTDOWN ERROR",MB_OK|MB_ICONINFORMATION);
-		hRC=NULL;
-		}
-	if(hDC&&!ReleaseDC(hWnd,hDC)) { MessageBox(NULL,"Release Device Context Failed.","SHUTDOWN ERROR",MB_OK|MB_ICONINFORMATION); hDC=NULL; }
-	if(hWnd&&!DestroyWindow(hWnd)) { MessageBox(NULL,"Could Not Release hWnd.","SHUTDOWN ERROR",MB_OK|MB_ICONINFORMATION); hWnd=NULL; }
-	if(!UnregisterClass("razor1911",hInstance)) { MessageBox(NULL,"Could Not Unregister Class.","SHUTDOWN ERROR",MB_OK|MB_ICONINFORMATION); hInstance=NULL; }
+	if (window)
+		glfwDestroyWindow(window);
+
+	glfwTerminate();
 	delete timer;
 	}
 
-int CreateGLWindow(char* title)
+int CreateGLWindow(const char* title)
 	{
-	GLuint pixelFormat;	// pixel format result
-	WNDCLASS wc;				// windows class structure
-	DWORD dwExStyle;		// window extended style
-	DWORD dwStyle;			// window style
-	RECT WindowRect;		// upper_left/lower_right values
-	int w=GetSystemMetrics(SM_CXSCREEN);
-	int h=GetSystemMetrics(SM_CYSCREEN);
+	GLFWmonitor* primary = glfwGetPrimaryMonitor();
+	const GLFWvidmode* mode = glfwGetVideoMode(primary);
+	int w=mode->width;
+	int h=mode->height;
 	screen_w=fullscreen?w:window_w;
 	screen_h=fullscreen?h:window_h;
 	timer_fps_min=32768;
@@ -2038,238 +2106,60 @@ int CreateGLWindow(char* title)
 	debug_vtx[5]=-debug_h;
 	debug_vtx[6]=-debug_w;
 	debug_vtx[7]=debug_h;
-	WindowRect.left=0;												// set left value
-	WindowRect.right=(long)screen_w;					// set right value
-	WindowRect.top=0;													// set top value
-	WindowRect.bottom=(long)screen_h;					// set bottom value
-	pfd.cColorBits=window_color;							// set color depth
-	hInstance=GetModuleHandle(NULL);					// window instance
-	wc.style=CS_HREDRAW|CS_VREDRAW|CS_OWNDC;	// redraw on size,own DC for window
-	wc.lpfnWndProc=(WNDPROC) WndProc;					// WndProc handles messages
-	wc.cbClsExtra=0;													// no extra window data
-	wc.cbWndExtra=0;													// no extra window data
-	wc.hInstance=hInstance;										// set the instance
-	wc.hIcon=LoadIcon(hInstance,MAKEINTRESOURCE(ICON_32));	// load default icon
-	wc.hCursor=LoadCursor(NULL,IDC_ARROW);		// load arrow pointer
-	wc.hbrBackground=CreateSolidBrush(RGB(0,0,0));// background color
-	wc.lpszMenuName=NULL;											// no menu
-	wc.lpszClassName="razor1911";							// set class name
-	if(!RegisterClass(&wc)) return false;			// register window class
-	if(fullscreen)
-		{
-		DEVMODE dmScreenSettings;															// device mode
-		memset(&dmScreenSettings,0,sizeof(dmScreenSettings));	// is memory cleared?
-		dmScreenSettings.dmSize=sizeof(dmScreenSettings);			// devmode structure size
-		dmScreenSettings.dmPelsWidth=screen_w;								// screen width
-		dmScreenSettings.dmPelsHeight=screen_h;								// screen height
-		dmScreenSettings.dmBitsPerPel=window_color;						// bits per pixel
-		dmScreenSettings.dmFields=DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
-		// set selected mode
-		if(ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL) fullscreen=false;
-		}
-	if(fullscreen)
-		{
-		dwExStyle=WS_EX_APPWINDOW;							// window extended style
-		dwStyle=WS_POPUP;												// windows style
-		ShowCursor(false);											// hide cursor
-		}
-	else
-		{
-		dwExStyle=WS_EX_APPWINDOW|WS_EX_CLIENTEDGE;	// window extended style
-		dwStyle=WS_OVERLAPPEDWINDOW;								// windows style
-		}
-	AdjustWindowRectEx(&WindowRect,dwStyle,false,dwExStyle);	// adjust window to requested size
+
+	glfwWindowHint(GLFW_DEPTH_BITS, window_color);
+	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+	glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);
+	glfwWindowHint(GLFW_OPENGL_ANY_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+
 	// create window
-	if(!(hWnd=CreateWindowEx(dwExStyle,		// extended style for window
-		"razor1911",												// class name
-		title,															// window title
-		dwStyle															// required window style
-		&~WS_THICKFRAME 										// window style (no-resize)
-		//&~WS_SYSMENU											// window style (system menu)
-		//&WS_DISABLED											// disable window
-		&~WS_MAXIMIZEBOX 										// window style (maximize)
-		&~WS_MINIMIZEBOX,										// window style (minimize)
-		(int)((w-screen_w)/2),							// window position x
-		(int)((h-screen_h)/2),							// window position y
-		(WindowRect.right-WindowRect.left),	// window width
-		(WindowRect.bottom-WindowRect.top),	// window height
-		NULL,																// no parent window
-		NULL,																// no menu
-		hInstance,													// instance
-		NULL)))															// don't pass anything to WM_CREATE!
-		{
+	if (fullscreen)
+		window = glfwCreateWindow(w, h, title, primary, NULL);
+	else
+		window = glfwCreateWindow(screen_w, screen_h, title, NULL, NULL);
+
+	glfwSetWindowSizeCallback(window, window_size_callback);
+	glfwSetWindowCloseCallback(window, window_close_callback);
+	glfwSetKeyCallback(window, key_callback);
+
+	if (!window) {
 		KillGLWindow();
 		return false;
-		}
-	if(!(hDC=GetDC(hWnd))) { KillGLWindow(); return false; }
-	if(!(pixelFormat=ChoosePixelFormat(hDC,&pfd))) { KillGLWindow(); return false; }
-	if(!SetPixelFormat(hDC,pixelFormat,&pfd)) { KillGLWindow(); return false; }
-	if(!(hRC=wglCreateContext(hDC))) { KillGLWindow(); return false; }
-	if(!wglMakeCurrent(hDC,hRC)) { KillGLWindow(); return false; }
-	ShowWindow(hWnd,SW_SHOW);		// show window
-	SetForegroundWindow(hWnd);	// set higher priority
-	SetFocus(hWnd);							// set keyboard focus to window
+	}
+
+	glfwMakeContextCurrent(window);
+
 	if(!InitGL()) { KillGLWindow(); return false; }
 	return true;
 	}
-
-// window handle,window message,additional message,additional message
-LRESULT CALLBACK WndProc(HWND	hWnd,UINT	uMsg,WPARAM	wParam,LPARAM	lParam)
-	{
-	switch(uMsg)								// check windows messages
-		{
-		case WM_ACTIVATE:					// watch for window activate message
-			{
-			active=!HIWORD(wParam)?true:false;	// check minimization state
-			return 0;								// return to the message loop
-			}
-		case WM_SYSCOMMAND:				// intercept system commands
-			{
-			switch(wParam)					// check system calls
-				{
-				case SC_SCREENSAVE:		// screensaver trying to start?
-				case SC_MONITORPOWER:	// monitor trying to enter powersave?
-					return 0;						// prevent from happening
-				}
-			break;									// exit
-			}
-		case WM_CLOSE:						// close message?
-			{
-			PostQuitMessage(0);			// post quit message
-			return 0;
-			}
-		case WM_KEYDOWN:					// key down?
-			{
-			keys[wParam]=true;			// mark key as true
-			return 0;
-			}
-		case WM_KEYUP:						// key released?
-			{
-			keys[wParam]=false;			// mark key as false
-			return 0;
-			}
-	  case WM_SIZE:							// resize openGL window
-			{
-			window_w=LOWORD(lParam);
-			window_h=HIWORD(lParam);
-			screen_w=window_w;
-			screen_h=window_h;
-			return 0;
-			}
-		}
-	return DefWindowProc(hWnd,uMsg,wParam,lParam); // pass all unhandled messages to DefWindowProc
-	}
-
+	
 // instance,previous instance,command line parameters,window show state
-int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR lpCmdLine,int nCmdShow)
+int main(int argc, char *argv[])
 	{
-	MSG msg;																		// windows message structure
-	done=false;																	// exit loop
+	glfwSetErrorCallback(error_callback);
+
+	if(!glfwInit())
+		exit(EXIT_FAILURE);
+
 	// ask for fullscreen mode
 	#if !DEBUG
+#if _WIN32
+	MSG msg;																		// windows message structure
 	fullscreen=(MessageBox(NULL,"fullscreen mode?",name,MB_YESNO|MB_ICONQUESTION)==IDYES)?true:false;
+#else
+	fullscreen=false;
+#endif
 	#endif
 	// create openGL window
 	if(!CreateGLWindow(name)) return 0;					// quit if window not created
 	// display a first frame
 	DrawGLScene();
-	SwapBuffers(hDC);
+	glfwSwapBuffers(window);
 	// main loop
-	while(!done)
+	while (!done)
 		{
-		if(PeekMessage(&msg,NULL,0,0,PM_REMOVE))	// a message is waiting?
-			{
-			if(msg.message==WM_QUIT)								// a quit message?
-				{
-				done=true;														// quit window
-				}
-			else																		// a window message?
-				{
-				TranslateMessage(&msg);								// translate message
-				DispatchMessage(&msg);								// dispatch message
-				}
-			}
-		else
-			{
-			if((active&&!DrawGLScene())||keys[VK_ESCAPE]) done=true; else SwapBuffers(hDC);	// exit or swap buffers
-			if(keys[VK_F1])
-				{
-				debug_flag=!debug_flag;
-				keys[VK_F1]=false;
-				}
-			#if DEBUG
-			if(keys[VK_F2])
-				{
-				polygon=!polygon;
-				polygon_fillmode=(polygon)?GL_FILL:GL_LINE;
-				glPolygonMode(GL_FRONT,polygon_fillmode);
-				keys[VK_F2]=false;
-				}
-			if(keys[VK_F3])
-				{
-				shader_flag=!shader_flag;
-				keys[VK_F3]=false;
-				}
-			if(keys[VK_F4])
-				{
-				shader_postfx_flag=!shader_postfx_flag;
-				keys[VK_F4]=false;
-				}
-			if(keys[VK_TAB])
-				{
-				shader_effect_flag=!shader_effect_flag;
-				keys[VK_TAB]=false;
-				}
-			if(keys[VK_RETURN])
-				{
-				timer_fps_total=0;
-				timer_fps_min=32768;
-				timer_fps_max=0;
-				frame_counter=0;
-				bar(1.0f);
-				greetings();
-				keys[VK_RETURN]=false;
-				}
-			if(keys[VK_SPACE])
-				{
-				KillGLWindow();
-				fullscreen=!fullscreen;
-				if(!CreateGLWindow(name)) return 0;		// quit if window not created
-				keys[VK_SPACE]=false;
-				}
-			if(keys[VK_F5])
-				{
-				screen_i--;
-				if(screen_i<0) screen_i=screen_max-1;
-				screen(screen_start[screen_i]);
-				keys[VK_F5]=false;
-				}
-			if(keys[VK_F6])
-				{
-				screen_i++;
-				if(screen_i>screen_max-1) screen_i=0;
-				screen(screen_start[screen_i]);
-				keys[VK_F6]=false;
-				}
-			if(keys[VK_F7])
-				{
-				beat();
-				sync1();
-				sync2();
-				keys[VK_F7]=false;
-				}
-			if(keys[VK_F12])
-				{
-				postfx_scanline=!postfx_scanline;
-				keys[VK_F12]=false;
-				}
-			if(keys[VK_BACK])
-				{
-				pause=!pause;
-				keys[VK_BACK]=false;
-				}
-			#endif
-			}
+			if (active && !DrawGLScene()) done=true; else glfwSwapBuffers(window);
+			glfwPollEvents();
 		}
 	// shutdown
 	#if MUSIC
@@ -2277,5 +2167,5 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR lpCmdLine,i
 	player.Close();
 	#endif
 	KillGLWindow();
-	return(msg.wParam);
+	return 0;
 	}

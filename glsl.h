@@ -16,11 +16,11 @@
 #ifndef GLSL_H
 #define GLSL_H
 
+#if SHADER
 #define MAX_ERROR_STRING_LENGTH	1024
 
 // includes for OpenGL 2.0 extensions
-#include "glext.h"
-#include "wglext.h"
+#include <GL/glext.h>
 
 typedef GLint VARID;
 typedef GLint ATTRID;
@@ -341,5 +341,6 @@ protected:	// INTERNAL (don't touch !)
 
 	friend class GLSL;
 };
+#endif
 
 #endif
