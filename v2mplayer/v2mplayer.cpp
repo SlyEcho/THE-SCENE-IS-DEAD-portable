@@ -8,7 +8,6 @@
 /*************************************************************************************/
 /*************************************************************************************/
 
-#if MUSIC
 
 #include "v2mplayer.h"
 #include "libv2.h"
@@ -18,9 +17,6 @@
 #define UPDATENT2(n, v, p, w) if ((n) < (w) && GETDELTA((p), (w))) { (v) = m_state.time + GETDELTA((p), (w)); }
 #define UPDATENT3(n, v, p, w) if ((n) < (w) && (v) < m_state.nexttime) m_state.nexttime = (v);
 #define PUTSTAT(s) { uint8_t bla = (s); if (laststat != bla) { laststat = bla; *mptr ++= (uint8_t)laststat; }};
-
-#define sTRUE 1
-#define sFALSE 0
 
 namespace
 {
@@ -478,7 +474,5 @@ uint32_t V2MPlayer::CalcPositions(sS32 **a_dest)
     }
     return pn;
 }
-
-#endif
 
 #endif
