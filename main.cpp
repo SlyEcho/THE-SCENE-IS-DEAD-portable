@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
-#define DEBUG 1					// debug flag //#if defined(_DEBUG)
+#define DEBUG 0					// debug flag //#if defined(_DEBUG)
 #define SHADER 1				// shader flag
 #define MUSIC DEBUG?0:1 // music flag
 #define PI 3.1415926535f// pi
@@ -19,9 +19,24 @@
 #include "resource/shaders.h"
 #endif
 #include "timer.h"
+
 #if MUSIC
-#include "v2mplayer.h"
-#include "libv2.h"
+// miniaudio
+#define MINIAUDIO_IMPLEMENTATION
+#define MA_ENABLE_ONLY_SPECIFIC_BACKENDS
+#define MA_NO_GENERATION
+#define MA_NO_DECODING
+#define MA_NO_ENCODING
+#if _WIN32
+#define MA_ENABLE_DSOUND
+#elif __linux__
+#define MA_ENABLE_ALSA
+#else
+#error "Sound is not supported on this platform"
+#endif
+#include "miniaudio.h"
+
+#include "v2mplayer/v2mplayer.h"
 #include "music.h"
 #endif
 
@@ -47,6 +62,8 @@ int frame_counter=0;
 //char *param=GetCommandLine();
 
 #if MUSIC
+static ma_device_config audconfig;
+static ma_device auddevice;
 static V2MPlayer player;
 #endif
 bool music_play=false;	// flag
@@ -66,7 +83,7 @@ GLFWwindow* window = NULL;
 int keys[256];					// keyboard array
 int active=true;				// window active flag
 bool fullscreen=DEBUG?false:true;	// fullscreen flag
-bool pause=false;				// pause flag
+bool dempause=false;				// pause flag
 float nearplane=0.1f;		// nearplane
 float farplane=1000.0f;	// farplane
 bool polygon=true;			// polygon mode
@@ -402,7 +419,6 @@ int load_tex(unsigned char *file,int size,GLint clamp,GLint mipmap)
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,mipmap);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,mipmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP,GL_TRUE);
-	printf("w: %d - h: %d - cpf: %d\n", x,y,cpf);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,x,y,0,GL_BGR,GL_UNSIGNED_BYTE,tex);
 	return TexID;
 	}
@@ -675,9 +691,9 @@ void screen(int n)
 			if(n==16) // music
 				{
 				#if MUSIC
+				ma_device_start(&auddevice);
 				player.Stop();
 				player.Play();
-				while(dsGetCurSmp()<0.0f) {}
 				#endif
 				music_play=true;
 				timer_buffer=timer_global;
@@ -883,6 +899,31 @@ void screen(int n)
 	calc_txt();
 	}
 
+void audiocallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+{
+	if (!player.IsPlaying()) return;
+
+	float* buf = (float*) pOutput;
+	player.Render(buf, frameCount);
+}
+
+bool InitAudio(void) {
+	audconfig = ma_device_config_init(ma_device_type_playback);
+	audconfig.playback.format   = ma_format_f32;
+	audconfig.playback.channels = 2;
+	audconfig.sampleRate        = 44100;
+	audconfig.dataCallback      = audiocallback;
+
+	if (ma_device_init(NULL, &audconfig, &auddevice) != MA_SUCCESS)
+        return false;
+
+	return true;
+}
+
+void KillAudio(void) {
+	ma_device_uninit(&auddevice);
+}
+
 int InitGL(void)
 	{
 	glClearDepth(1.0f);								// set depth buffer
@@ -899,9 +940,9 @@ int InitGL(void)
 	screen(screen_start[screen_i]);
 	// initialize music
 	#if MUSIC
+	InitAudio();
 	player.Init();
 	player.Open(music);
-	dsInit(player.RenderProxy,&player,GetForegroundWindow());
 	#endif
 	/*-PATACODE----------------------------------------------------------------*/
 	#if SHADER
@@ -1060,7 +1101,7 @@ int DrawGLScene(void) // draw scene
 	timer->update();
 	timer_global_previous=timer_global;
 	timer_global=timer->elapsed;
-	if(!pause) main_angle=timer_global*100.0f*PID;
+	if(!dempause) main_angle=timer_global*100.0f*PID;
 	timer_fps=1.0f/(timer_global-timer_global_previous);
 	if(timer_fps<0) timer_fps=0;
 	if(timer_fps>1000) timer_fps=0;
@@ -1071,11 +1112,10 @@ int DrawGLScene(void) // draw scene
 	// music
 	if(music_play)
 		{
-		#if MUSIC
-		timer_music=dsGetCurSmp()/176400.0f-timer_buffer;
-		#else
 		timer_music=timer_global-timer_buffer;
-		#endif
+
+		// TODO: gets sample-exact and latency compensated current play position
+		//timer_music=dsGetCurSmp()/176400.0f-timer_buffer;
 		}
 	else
 		{
@@ -2112,7 +2152,7 @@ int CreateGLWindow(const char* title)
 	glfwWindowHint(GLFW_DEPTH_BITS, window_color);
 	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);
-	glfwWindowHint(GLFW_OPENGL_ANY_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	// create window
 	if (fullscreen)
@@ -2120,6 +2160,7 @@ int CreateGLWindow(const char* title)
 	else
 		window = glfwCreateWindow(screen_w, screen_h, title, NULL, NULL);
 
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSetWindowCloseCallback(window, window_close_callback);
 	glfwSetKeyCallback(window, key_callback);
@@ -2149,7 +2190,8 @@ int main(int argc, char *argv[])
 	MSG msg;																		// windows message structure
 	fullscreen=(MessageBox(NULL,"fullscreen mode?",name,MB_YESNO|MB_ICONQUESTION)==IDYES)?true:false;
 #else
-	fullscreen=false;
+	printf("Fullscreen? (y/n) ");
+	(getchar() == 121) ? fullscreen=true : fullscreen=false;
 #endif
 	#endif
 	// create openGL window
@@ -2165,7 +2207,7 @@ int main(int argc, char *argv[])
 		}
 	// shutdown
 	#if MUSIC
-	dsClose();
+	KillAudio();
 	player.Close();
 	#endif
 	KillGLWindow();
