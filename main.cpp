@@ -420,6 +420,7 @@ int load_tex(unsigned char *file,int size,GLint clamp,GLint mipmap)
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,mipmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP,GL_TRUE);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,x,y,0,GL_BGR,GL_UNSIGNED_BYTE,tex);
+	stbi_image_free(tex);
 	return TexID;
 	}
 
@@ -2192,8 +2193,10 @@ int main(int argc, char *argv[])
 	MSG msg;																		// windows message structure
 	fullscreen=(MessageBox(NULL,"fullscreen mode?",name,MB_YESNO|MB_ICONQUESTION)==IDYES)?true:false;
 #else
-	printf("Fullscreen? (y/n) ");
-	(getchar() == 121) ? fullscreen=true : fullscreen=false;
+	if (isatty(STDOUT_FILENO)) {
+		printf("Fullscreen? (y/n) ");
+		(getchar() == 121) ? fullscreen=true : fullscreen=false;
+	}
 #endif
 	#endif
 	// create openGL window
