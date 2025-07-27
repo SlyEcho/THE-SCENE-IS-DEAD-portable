@@ -12,6 +12,7 @@ for i in $(ls ${RESOURCE_DIR}/*.glsl)
 do
     NAME="$(basename ${i%?????})"
     CAPITALNAME="${NAME^^}"
+    SOURCE="$(cat ${i})"
 
-    echo -e "std::string ${CAPITALNAME} = R\"(\n"$(cat ${i})"\n)\";" >> ${SHADER_HEADER}
+    echo -e "std::string ${CAPITALNAME} = R\"(\n${SOURCE}\n)\";" >> ${SHADER_HEADER}
 done
