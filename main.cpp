@@ -1,10 +1,9 @@
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
-#define DEBUG 0					// debug flag //#if defined(_DEBUG)
-#define SHADER 0				// shader flag
-//#define MUSIC DEBUG?0:1 // music flag
-#define MUSIC 1
+#define DEBUG 1					// debug flag //#if defined(_DEBUG)
+#define SHADER 1				// shader flag
+#define MUSIC DEBUG?0:1 // music flag
 #define PI 3.1415926535f// pi
 #define PID PI/180.0f		// pi ratio
 #define CR 1.0f/256.0f	// color ratio
@@ -17,6 +16,7 @@
 #include <math.h>
 #if SHADER
 #include "glsl.h"
+#include "resource/shaders.h"
 #endif
 #include "timer.h"
 #if MUSIC
@@ -918,24 +918,24 @@ int InitGL(void)
 			fbo_ping=glsl.CreateFBO(screen_w,screen_h);
 			fbo_pong=glsl.CreateFBO(screen_w,screen_h);
 			// shader simple
-			shader_simple=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_SIMPLE,DEBUG);
+			shader_simple=glsl.CreateShader(VS_SIMPLE,PS_SIMPLE,DEBUG);
 			shader_simple_texture=shader_simple->GetVariableID("texture");
 			// shader blur horizontal
-			shader_blur_h=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_BLUR_H,DEBUG);
+			shader_blur_h=glsl.CreateShader(VS_SIMPLE,PS_BLUR_H,DEBUG);
 			shader_blur_h_texture=shader_blur_h->GetVariableID("texture");
 			shader_blur_h_screen_w=shader_blur_h->GetVariableID("screen_w");
 			shader_blur_h_screen_h=shader_blur_h->GetVariableID("screen_h");
 			shader_blur_h_time=shader_blur_h->GetVariableID("time");
 			shader_blur_h_value=shader_blur_h->GetVariableID("value");
 			// shader blur vertical
-			shader_blur_v=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_BLUR_V,DEBUG);
+			shader_blur_v=glsl.CreateShader(VS_SIMPLE,PS_BLUR_V,DEBUG);
 			shader_blur_v_texture=shader_blur_v->GetVariableID("texture");
 			shader_blur_v_screen_w=shader_blur_v->GetVariableID("screen_w");
 			shader_blur_v_screen_h=shader_blur_v->GetVariableID("screen_h");
 			shader_blur_v_time=shader_blur_v->GetVariableID("time");
 			shader_blur_v_value=shader_blur_v->GetVariableID("value");
 			// shader glow
-			shader_glow=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_GLOW,DEBUG);
+			shader_glow=glsl.CreateShader(VS_SIMPLE,PS_GLOW,DEBUG);
 			shader_glow_texture=shader_glow->GetVariableID("texture");
 			shader_glow_texture_prv=shader_glow->GetVariableID("texture_prv");
 			shader_glow_screen_w=shader_glow->GetVariableID("screen_w");
@@ -945,7 +945,7 @@ int InitGL(void)
 			shader_glow_value1=shader_glow->GetVariableID("value1");
 			shader_glow_value2=shader_glow->GetVariableID("value2");
 			// shader radial
-			shader_radial=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_RADIAL,DEBUG);
+			shader_radial=glsl.CreateShader(VS_SIMPLE,PS_RADIAL,DEBUG);
 			shader_radial_texture=shader_radial->GetVariableID("texture");
 			shader_radial_screen_w=shader_radial->GetVariableID("screen_w");
 			shader_radial_screen_h=shader_radial->GetVariableID("screen_h");
@@ -954,7 +954,7 @@ int InitGL(void)
 			shader_radial_value2=shader_radial->GetVariableID("value2");
 			shader_radial_color=shader_radial->GetVariableID("color");
 			// shader copper
-			shader_copper=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_COPPER,DEBUG);
+			shader_copper=glsl.CreateShader(VS_SIMPLE,PS_COPPER,DEBUG);
 			shader_copper_texture=shader_copper->GetVariableID("texture");
 			shader_copper_screen_w=shader_copper->GetVariableID("screen_w");
 			shader_copper_screen_h=shader_copper->GetVariableID("screen_h");
@@ -964,67 +964,67 @@ int InitGL(void)
 			shader_copper_speed=shader_copper->GetVariableID("speed");
 			shader_copper_limit=shader_copper->GetVariableID("limit");
 			// shader wave
-			shader_wave=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_WAVE,DEBUG);
+			shader_wave=glsl.CreateShader(VS_SIMPLE,PS_WAVE,DEBUG);
 			shader_wave_texture=shader_wave->GetVariableID("texture");
 			shader_wave_screen_w=shader_wave->GetVariableID("screen_w");
 			shader_wave_screen_h=shader_wave->GetVariableID("screen_h");
 			shader_wave_time=shader_wave->GetVariableID("time");
 			shader_wave_value=shader_wave->GetVariableID("value");
 			// shader render
-			shader_render=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_RENDER,DEBUG);
+			shader_render=glsl.CreateShader(VS_SIMPLE,PS_RENDER,DEBUG);
 			shader_render_resolution=shader_render->GetVariableID("resolution");
 			shader_render_time=shader_render->GetVariableID("time");
 			shader_render_value=shader_render->GetVariableID("value");
 			// shader cloud
-			shader_cloud=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_CLOUD,DEBUG);
+			shader_cloud=glsl.CreateShader(VS_SIMPLE,PS_CLOUD,DEBUG);
 			shader_cloud_resolution=shader_cloud->GetVariableID("resolution");
 			shader_cloud_time=shader_cloud->GetVariableID("time");
 			shader_cloud_value=shader_cloud->GetVariableID("value");
 			// shader tunnel
-			shader_tunnel=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_TUNNEL,DEBUG);
+			shader_tunnel=glsl.CreateShader(VS_SIMPLE,PS_TUNNEL,DEBUG);
 			shader_tunnel_resolution=shader_tunnel->GetVariableID("resolution");
 			shader_tunnel_time=shader_tunnel->GetVariableID("time");
 			shader_tunnel_value=shader_tunnel->GetVariableID("value");
 			// shader tube
-			shader_tube=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_TUBE,DEBUG);
+			shader_tube=glsl.CreateShader(VS_SIMPLE,PS_TUBE,DEBUG);
 			shader_tube_resolution=shader_tube->GetVariableID("resolution");
 			shader_tube_time=shader_tube->GetVariableID("time");
 			shader_tube_value=shader_tube->GetVariableID("value");
 			// shader disc
-			shader_disc=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_DISC,DEBUG);
+			shader_disc=glsl.CreateShader(VS_SIMPLE,PS_DISC,DEBUG);
 			shader_disc_resolution=shader_disc->GetVariableID("resolution");
 			shader_disc_time=shader_disc->GetVariableID("time");
 			shader_disc_type=shader_disc->GetVariableID("type");
 			shader_disc_value=shader_disc->GetVariableID("value");
 			shader_disc_sync=shader_disc->GetVariableID("sync");
 			// shader title
-			shader_title=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_TITLE,DEBUG);
+			shader_title=glsl.CreateShader(VS_SIMPLE,PS_TITLE,DEBUG);
 			shader_title_resolution=shader_title->GetVariableID("resolution");
 			shader_title_time=shader_title->GetVariableID("time");
 			shader_title_value=shader_title->GetVariableID("value");
 			// shader tower
-			shader_tower=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_TOWER,DEBUG);
+			shader_tower=glsl.CreateShader(VS_SIMPLE,PS_TOWER,DEBUG);
 			shader_tower_resolution=shader_tower->GetVariableID("resolution");
 			shader_tower_time=shader_tower->GetVariableID("time");
 			shader_tower_value=shader_tower->GetVariableID("value");
 			// shader sphere
-			shader_sphere=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_SPHERE,DEBUG);
+			shader_sphere=glsl.CreateShader(VS_SIMPLE,PS_SPHERE,DEBUG);
 			shader_sphere_resolution=shader_sphere->GetVariableID("resolution");
 			shader_sphere_time=shader_sphere->GetVariableID("time");
 			shader_sphere_value=shader_sphere->GetVariableID("value");
 			// shader dark
-			shader_dark=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_DARK,DEBUG);
+			shader_dark=glsl.CreateShader(VS_SIMPLE,PS_DARK,DEBUG);
 			shader_dark_resolution=shader_dark->GetVariableID("resolution");
 			shader_dark_time=shader_dark->GetVariableID("time");
 			shader_dark_value=shader_dark->GetVariableID("value");
 			// shader land
-			shader_land=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_LAND,DEBUG);
+			shader_land=glsl.CreateShader(VS_SIMPLE,PS_LAND,DEBUG);
 			shader_land_resolution=shader_land->GetVariableID("resolution");
 			shader_land_time=shader_land->GetVariableID("time");
 			shader_land_value1=shader_land->GetVariableID("value1");
 			shader_land_value2=shader_land->GetVariableID("value2");
 			// shader postfx
-			shader_postfx=glsl.CreateShader(IDR_VS_SIMPLE,IDR_PS_POSTFX,DEBUG);
+			shader_postfx=glsl.CreateShader(VS_SIMPLE,PS_POSTFX,DEBUG);
 			shader_postfx_texture=shader_postfx->GetVariableID("texture");
 			shader_postfx_texture_2d=shader_postfx->GetVariableID("texture_2d");
 			shader_postfx_screen_w=shader_postfx->GetVariableID("screen_w");
@@ -1042,6 +1042,8 @@ int InitGL(void)
 			sprintf(glsl_error,"A bloody error occurred during GLSL init!\n\n%s",_pException);
 #if _WIN32
 			MessageBox(NULL,glsl_error,"GLSL ERROR!",MB_OK|MB_ICONERROR);
+#else
+			printf("%s\n",glsl_error);
 #endif
 			return false;
 			}

@@ -1,5 +1,3 @@
-#if SHADER
-
 #include <stdio.h>
 
 #include <GLFW/glfw3.h>
@@ -8,7 +6,7 @@
 
 #include "glsl.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 GLSL::GLSL():m_pRootShader(NULL),m_pRootFBO(NULL)
 	{
@@ -35,20 +33,7 @@ GLSL::~GLSL()
 	delete[] ms_pShaderLinkErrors;
 	}
 
-Shader*	GLSL::CreateShader(WORD _VSResourceID,WORD _PSResourceID,bool _bThrowOnError)
-	{
-	// load vertex & pixel shader source codes
-	char* pVertexShaderSource=LoadShaderResource(_VSResourceID);
-	char* pPixelShaderSource=LoadShaderResource(_PSResourceID);
-	// create the shader
-	Shader*	pResult=CreateShader(pVertexShaderSource,pPixelShaderSource,_bThrowOnError);
-	// release the source codes
-	delete[] pVertexShaderSource;
-	delete[] pPixelShaderSource;
-	return pResult;
-	}
-
-Shader*	GLSL::CreateShader(const char* _pVertexShaderCode,const char* _pPixelShaderCode,bool _bThrowOnError)
+Shader*	GLSL::CreateShader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError)
 	{
 	// create the shader object
 	Shader*	pResult=new Shader(_pVertexShaderCode,_pPixelShaderCode,_bThrowOnError);
@@ -92,20 +77,6 @@ void GLSL::DestroyFBO(FBO& _FBO)
 		m_pRootFBO=_FBO.m_pNext;
 	if(_FBO.m_pNext!=NULL) _FBO.m_pNext->m_pPrevious=_FBO.m_pPrevious;
 	delete &_FBO;
-	}
-
-char*	GLSL::LoadShaderResource(WORD _ResourceID)
-	{
-	HRSRC hResource=FindResource(NULL,MAKEINTRESOURCE(_ResourceID),"SHADER");
-	// load and lock the resource
-	HGLOBAL	hBinary=LoadResource(NULL,hResource);
-	LPVOID	pData=LockResource(hBinary);
-	// copy it and append the missing NULL character terminator
-	DWORD	dwSize=SizeofResource(NULL,hResource);
-	char*	pShaderSource=new char[dwSize+1];
-	memcpy(pShaderSource,pData,dwSize);
-	pShaderSource[dwSize]='\0';	// add the terminator
-	return pShaderSource;
 	}
 
 GLchar*	GLSL::ms_pShaderCompilationErrorsVS=NULL;
@@ -208,13 +179,15 @@ void GLSL::HookGLEXTFunctions()
 	}
 
 // shader class implementation
-Shader::Shader(const char* _pVertexShaderCode,const char* _pPixelShaderCode,bool _bThrowOnError):m_pPrevious(NULL),m_pNext(NULL),m_bHasErrors(false)
+Shader::Shader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError):m_pPrevious(NULL),m_pNext(NULL),m_bHasErrors(false)
 	{
+	const char* vertex_src = _pVertexShaderCode.c_str();
+	const char* pixel_src = _pPixelShaderCode.c_str();
 	int	status;
 	int log_size=0;
 	// compile vertex shader
 	m_hVS=GLSL::glCreateShader(GL_VERTEX_SHADER);
-	GLSL::glShaderSource(m_hVS,1,&_pVertexShaderCode,NULL);
+	GLSL::glShaderSource(m_hVS,1,&vertex_src,NULL);
 	GLSL::glCompileShader(m_hVS);
 	GLSL::glGetShaderiv(m_hVS,GL_COMPILE_STATUS,&status);
 	GLSL::glGetShaderiv(m_hVS,GL_INFO_LOG_LENGTH,&log_size);
@@ -223,14 +196,18 @@ Shader::Shader(const char* _pVertexShaderCode,const char* _pPixelShaderCode,bool
 		{
 		char *log=(char*)malloc(log_size+1);
 		GLSL::glGetShaderInfoLog(m_hVS,log_size,&log_size,log);
+		#ifdef _WIN32
 		MessageBox(NULL,log,"Vertex shader log",MB_OK|MB_ICONERROR);
+		#else
+		printf("\n\nVertex shader log:\n%s\n\n", log);
+		#endif
 		free(log);
 		if(_bThrowOnError) throw GLSL::ms_pShaderCompilationErrorsVS;
 		}
 	#endif
 	// compile pixel shader
 	m_hPS=GLSL::glCreateShader(GL_FRAGMENT_SHADER);
-	GLSL::glShaderSource(m_hPS,1,&_pPixelShaderCode,NULL);
+	GLSL::glShaderSource(m_hPS,1,&pixel_src,NULL);
 	GLSL::glCompileShader(m_hPS);
 	GLSL::glGetShaderiv(m_hPS,GL_COMPILE_STATUS,&status);
 	GLSL::glGetShaderiv(m_hPS,GL_INFO_LOG_LENGTH,&log_size);
@@ -239,7 +216,11 @@ Shader::Shader(const char* _pVertexShaderCode,const char* _pPixelShaderCode,bool
 		{
 		char *log=(char*)malloc(log_size+1);
 		GLSL::glGetShaderInfoLog(m_hPS,log_size,&log_size,log);
+		#ifdef _WIN32
 		MessageBox(NULL,log,"Fragment shader log",MB_OK|MB_ICONERROR);
+		#else
+		printf("\n\nFragment shader log:\n%s\n\n", log);
+		#endif
 		free(log);
 		if(_bThrowOnError) throw GLSL::ms_pShaderCompilationErrorsVS;
 		}
@@ -334,4 +315,3 @@ void	FBO::UnBind()
 	{
 	GLSL::glBindFramebuffer(GL_FRAMEBUFFER,NULL);
 	}
-#endif

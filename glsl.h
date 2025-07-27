@@ -16,11 +16,12 @@
 #ifndef GLSL_H
 #define GLSL_H
 
-#if SHADER
 #define MAX_ERROR_STRING_LENGTH	1024
 
 // includes for OpenGL 2.0 extensions
 #include <GL/glext.h>
+
+#include <string>
 
 typedef GLint VARID;
 typedef GLint ATTRID;
@@ -56,19 +57,12 @@ public:		// METHODS
 
 	void	Init()	{ HookGLEXTFunctions(); }
 
-	// Creates a new GLSL vertex & pixel shader from 2 embeded text resources
-	//	_VSResourceID,ID of the vertex shader resource file
-	//	_PSResourceID,ID of the pixel shader resource file
-	//	_bThrowOnError,true to throw an exception if the shader fails to compile (default). If set to false,then you should check for errors with "Shader.HasErrors()" before using a shader !
-	//
-	Shader*	CreateShader(WORD _VSResourceID,WORD _PSResourceID,bool _bThrowOnError=true);
-
 	// Creates a new GLSL vertex & pixel shader from 2 GLSL source codes
 	//	_pVertexShaderCode,a pointer to the vertex shader source code
 	//	_pPixelShaderCode,a pointer to the pixel shader source code
 	//	_bThrowOnError,true to throw an exception if the shader fails to compile (default). If set to false,then you should check for errors with "Shader.HasErrors()" before using a shader !
 	//
-	Shader*	CreateShader(const char* _pVertexShaderCode,const char* _pPixelShaderCode,bool _bThrowOnError=true);
+	Shader*	CreateShader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError=true);
 
 	// Destroys an existing shader
 	//
@@ -98,7 +92,6 @@ public:		// METHODS
 
 protected:
 
-	char*	LoadShaderResource(WORD _ResourceID);
 	void	HookGLEXTFunctions();
 	// shaders management
 	static PFNGLCREATESHADERPROC				glCreateShader;
@@ -290,7 +283,7 @@ public:		// METHODS
 
 protected:	// INTERNAL (don't touch !)
 
-	Shader(const char* _pVertexShaderCode,const char* _pPixelShaderCode,bool _bThrowOnError=true);
+	Shader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError=true);
 	~Shader();
 
 	friend class GLSL;
@@ -341,6 +334,5 @@ protected:	// INTERNAL (don't touch !)
 
 	friend class GLSL;
 };
-#endif
 
 #endif
