@@ -899,6 +899,7 @@ void screen(int n)
 	calc_txt();
 	}
 
+#if MUSIC
 void audiocallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
 	if (!player.IsPlaying()) return;
@@ -923,6 +924,7 @@ bool InitAudio(void) {
 void KillAudio(void) {
 	ma_device_uninit(&auddevice);
 }
+#endif
 
 int InitGL(void)
 	{
@@ -2027,7 +2029,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 		case GLFW_KEY_BACKSPACE:
 				{
-				pause=!pause;
+				dempause=!dempause;
 				break;
 				}
 			#endif

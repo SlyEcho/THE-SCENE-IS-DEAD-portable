@@ -6,7 +6,7 @@
 
 #include "glsl.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 GLSL::GLSL():m_pRootShader(NULL),m_pRootFBO(NULL)
 	{
