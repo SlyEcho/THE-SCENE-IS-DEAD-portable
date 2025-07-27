@@ -4,6 +4,7 @@ This is a portable version of THE SCENE IS DEAD demo released by Razor 1911 at R
 
 ## Building
 Only GLFW and OpenGL is required. Once you met the requirements, run `make`.
+
 Untested on *BSD and others, possibly compiles on Windows with MingW but at that point you should just run the original 64k version.
 
 ## To-do list (for complete portability)
