@@ -21,7 +21,7 @@
 // includes for OpenGL 2.0 extensions
 #include <GL/glext.h>
 
-#include <string>
+#include <string_view>
 
 typedef GLint VARID;
 typedef GLint ATTRID;
@@ -62,7 +62,7 @@ public:		// METHODS
 	//	_pPixelShaderCode,a pointer to the pixel shader source code
 	//	_bThrowOnError,true to throw an exception if the shader fails to compile (default). If set to false,then you should check for errors with "Shader.HasErrors()" before using a shader !
 	//
-	Shader*	CreateShader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError=true);
+	Shader*	CreateShader(const std::string_view _pVertexShaderCode,const std::string_view _pPixelShaderCode,bool _bThrowOnError=true);
 
 	// Destroys an existing shader
 	//
@@ -283,7 +283,7 @@ public:		// METHODS
 
 protected:	// INTERNAL (don't touch !)
 
-	Shader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError=true);
+	Shader(const std::string_view _pVertexShaderCode,const std::string_view _pPixelShaderCode,bool _bThrowOnError=true);
 	~Shader();
 
 	friend class GLSL;

@@ -37,7 +37,7 @@ GLSL::~GLSL()
 	delete[] ms_pShaderLinkErrors;
 	}
 
-Shader*	GLSL::CreateShader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError)
+Shader*	GLSL::CreateShader(const std::string_view _pVertexShaderCode,const std::string_view _pPixelShaderCode,bool _bThrowOnError)
 	{
 	// create the shader object
 	Shader*	pResult=new Shader(_pVertexShaderCode,_pPixelShaderCode,_bThrowOnError);
@@ -183,15 +183,17 @@ void GLSL::HookGLEXTFunctions()
 	}
 
 // shader class implementation
-Shader::Shader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bool _bThrowOnError):m_pPrevious(NULL),m_pNext(NULL),m_bHasErrors(false)
+Shader::Shader(const std::string_view _pVertexShaderCode,const std::string_view _pPixelShaderCode,bool _bThrowOnError):m_pPrevious(NULL),m_pNext(NULL),m_bHasErrors(false)
 	{
-	const char* vertex_src = _pVertexShaderCode.c_str();
-	const char* pixel_src = _pPixelShaderCode.c_str();
+	const char* vertex_src = _pVertexShaderCode.data();
+	GLint vertex_len = (GLint)_pVertexShaderCode.size();
+	const char* pixel_src = _pPixelShaderCode.data();
+	GLint pixel_len = (GLint)_pPixelShaderCode.size();
 	int	status;
 	int log_size=0;
 	// compile vertex shader
 	m_hVS=GLSL::glCreateShader(GL_VERTEX_SHADER);
-	GLSL::glShaderSource(m_hVS,1,&vertex_src,NULL);
+	GLSL::glShaderSource(m_hVS,1,&vertex_src,&vertex_len);
 	GLSL::glCompileShader(m_hVS);
 	GLSL::glGetShaderiv(m_hVS,GL_COMPILE_STATUS,&status);
 	GLSL::glGetShaderiv(m_hVS,GL_INFO_LOG_LENGTH,&log_size);
@@ -211,7 +213,7 @@ Shader::Shader(std::string& _pVertexShaderCode,std::string& _pPixelShaderCode,bo
 	#endif
 	// compile pixel shader
 	m_hPS=GLSL::glCreateShader(GL_FRAGMENT_SHADER);
-	GLSL::glShaderSource(m_hPS,1,&pixel_src,NULL);
+	GLSL::glShaderSource(m_hPS,1,&pixel_src,&pixel_len);
 	GLSL::glCompileShader(m_hPS);
 	GLSL::glGetShaderiv(m_hPS,GL_COMPILE_STATUS,&status);
 	GLSL::glGetShaderiv(m_hPS,GL_INFO_LOG_LENGTH,&log_size);
