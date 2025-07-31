@@ -1,18 +1,14 @@
 #!/bin/bash
 set -e
 
-RESOURCE_DIR=$(dirname "$0")
-SHADER_HEADER="${RESOURCE_DIR}/shaders.h"
+printf "#include <string>\n\n"
 
-[ -f "${SHADER_HEADER}" ] && exit 0
-
-echo -e "#include <string>" >> ${SHADER_HEADER}
-
-for i in $(ls ${RESOURCE_DIR}/*.glsl)
-do
+for i in $@; do
     NAME="$(basename ${i%?????})"
     CAPITALNAME="${NAME^^}"
     SOURCE="$(cat ${i})"
 
-    echo -e "std::string ${CAPITALNAME} = R\"(\n${SOURCE}\n)\";" >> ${SHADER_HEADER}
+    printf "std::string %s = R\"(\n%s\n)\";\n\n" \
+        "${CAPITALNAME}" \
+        "${SOURCE}"
 done

@@ -15,6 +15,7 @@ endif
 
 SRCS := $(wildcard *.cpp v2mplayer/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
+SHADERS := $(wildcard resource/*.glsl)
 
 ifeq ($(RELEASE),1)
 CXXFLAGS += -DNDEBUG -Oz -flto -fno-rtti
@@ -30,8 +31,8 @@ ifeq ($(RELEASE),1)
 	-$(UPX) $<
 endif
 
-resource/shaders.h:
-	bash resource/glsl2h.sh
+resource/shaders.h: $(SHADERS) | resource/glsl2h.sh
+	bash resource/glsl2h.sh $^ > $@
 
 $(TARGET)$(EXE): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
