@@ -1,15 +1,32 @@
 #include "timer.h"
 
-#ifndef _WIN32
-#include <time.h>
+#ifdef _WIN32
+#include <profileapi.h>
 
-#define NS_PER_SEC 1000000000LL
-void QueryPerformanceFrequency(LARGE_INTEGER *freq)
+static int64_t GetFrequency()
 {
-	freq->QuadPart=NS_PER_SEC;
+	LARGE_INTEGER frequency = {};
+	QueryPerformanceFrequency(&frequency);
+	return frequency.QuadPart;
 }
 
-void QueryPerformanceCounter(LARGE_INTEGER *counter)
+static int64_t GetCounter()
+{
+	LARGE_INTEGER counter = {};
+	QueryPerformanceCounter(&counter);
+	return counter.QuadPart;
+}
+
+#else
+#include <time.h>
+constexpr int64_t NS_PER_SEC = 1000000000LL;
+
+static int64_t GetFrequency()
+{
+	return NS_PER_SEC;
+}
+
+static int64_t GetCounter()
 {
 	int64_t ticks;
 #ifdef __linux__
@@ -24,18 +41,18 @@ void QueryPerformanceCounter(LARGE_INTEGER *counter)
 #else
 	ticks = 0;
 #endif
-	counter->QuadPart=ticks;
+	return ticks;
 }
 #endif
 
 Timer::Timer()
 	{
-	QueryPerformanceFrequency(&timerFrequency);
-	tfreq=(double)timerFrequency.QuadPart;	
+	timerFrequency=GetFrequency();
+	tfreq=(double)timerFrequency;
 	// calibration
 	starttimer();
 	stoptimer();
-	tcorrection=(double)(endCount.QuadPart-startCount.QuadPart);
+	tcorrection=(double)(endCount-startCount);
 	tbegin=tstart;
 	}
 
@@ -45,14 +62,14 @@ Timer::~Timer()
 void Timer::starttimer(void)
 	{
 	time=0.0;
-	QueryPerformanceCounter(&startCount);
-	tstart=(double)startCount.QuadPart;
+	startCount=GetCounter();
+	tstart=(double)startCount;
 	}
 
 void Timer::stoptimer(void)
 	{
-	QueryPerformanceCounter(&endCount);
-	tstop=(double)endCount.QuadPart;
+	endCount=GetCounter();
+	tstop=(double)endCount;
 	}
 
 void Timer::update(void)

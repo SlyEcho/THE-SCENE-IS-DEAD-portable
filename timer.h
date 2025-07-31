@@ -1,32 +1,16 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <stdint.h>
-typedef union _LARGE_INTEGER {
-  struct {
-    uint32_t LowPart;
-    int32_t  HighPart;
-  } DUMMYSTRUCTNAME;
-  struct {
-    uint32_t LowPart;
-    int32_t  HighPart;
-  } u;
-  int64_t QuadPart;
-} LARGE_INTEGER;
-#endif
+#include <cstdint>
 
 class Timer	// high resolution timer
 	{
 	protected:
-		LARGE_INTEGER timerFrequency;
-		LARGE_INTEGER startCount;
-		LARGE_INTEGER endCount;
-		LARGE_INTEGER beginCount;
-		LARGE_INTEGER currentCount;
+		int64_t timerFrequency;
+		int64_t startCount;
+		int64_t endCount;
+		int64_t beginCount;
+		int64_t currentCount;
 		double tfreq;
 		double time;
 		double tstart;
