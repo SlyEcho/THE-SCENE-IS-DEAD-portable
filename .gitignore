@@ -1,3 +1,4 @@
 resource/shaders.h
 *.o
 tsid
+*.exe

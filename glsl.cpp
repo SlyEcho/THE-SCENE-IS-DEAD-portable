@@ -1,5 +1,9 @@
-#include <stdio.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
+#include <stdio.h>
 #include <GLFW/glfw3.h>
 #include <GL/gl.h>
 #include <GL/glu.h>

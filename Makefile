@@ -1,39 +1,46 @@
 # Define variables
-CXX := g++
-STRIP := strip
+CXX ?= g++
+STRIP ?= strip
+UPX ?= upx --ultra-brute
 CXXFLAGS += -Wall -g
 TARGET = tsid
-LDFLAGS += -lglfw -lGL -lGLU
-SRCS := $(shell find -name '*.cpp')
+
+ifeq ($(OS),Windows_NT)
+LDLIBS += -llibglfw3 -lopengl32 -lglu32
+EXE := .exe
+else
+LDLIBS += -lglfw -lGL -lGLU
+EXE=
+endif
+
+SRCS := $(wildcard *.cpp v2mplayer/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
 ifeq ($(RELEASE),1)
 CXXFLAGS += -DNDEBUG -Oz -flto -fno-rtti
 endif
 
-# Default target: builds the executable
-all: $(TARGET) squish
+.PHONY: all
+all: $(TARGET)$(EXE) squish
 
-squish:
+.PHONY: squish
+squish: $(TARGET)$(EXE)
 ifeq ($(RELEASE),1)
-	$(STRIP) $(TARGET)
-	upx --ultra-brute $(TARGET)
+	$(STRIP) $<
+	-$(UPX) $<
 endif
 
 resource/shaders.h:
 	bash resource/glsl2h.sh
 
-# Rule to link object files into the executable
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+$(TARGET)$(EXE): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-$(OBJS): resource/shaders.h
+main.o: resource/shaders.h
 
-# Rule to compile C++ source files into object files
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-# Phony target for cleaning up generated files
 .PHONY: clean
 clean:
 	rm -f $(TARGET) $(OBJS) resource/shaders.h
